@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Bond Market Map | BondStats</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #07111f;
+      --card: #0f1d31;
+      --card-2: #13233a;
+      --line: rgba(255,255,255,0.08);
+      --text: #f4f7fb;
+      --muted: #9db0c9;
+      --soft: #7f93ad;
+      --accent: #8ec5ff;
+      --accent-2: #b7d8ff;
+      --green: #5fd39a;
+      --red: #ff8a8a;
+      --amber: #ffd27a;
+      --shadow: 0 14px 40px rgba(0,0,0,0.28);
+      --radius: 20px;
+      --max: 1340px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(84,133,214,0.14), transparent 32%),
+        radial-gradient(circle at top right, rgba(143,191,255,0.10), transparent 24%),
+        linear-gradient(180deg, #07111f 0%, #081321 100%);
+    }
+
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(18,33,55,0.97), rgba(10,20,36,0.98));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 32px 30px 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      right: -80px;
+      bottom: -110px;
+      width: 340px;
+      height: 340px;
+      background: radial-gradient(circle, rgba(142,197,255,0.18), transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      color: var(--accent-2);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.03;
+      letter-spacing: -0.03em;
+    }
+
+    .subline {
+      margin: 0;
+      max-width: 930px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      min-height: 100%;
+    }
+
+    .panel-label {
+      color: var(--soft);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      background: rgba(183,216,255,0.12);
+      color: var(--accent-2);
+      margin-bottom: 14px;
+    }
+
+    .state-title {
+      font-size: clamp(26px, 3.4vw, 42px);
+      font-weight: 800;
+      line-height: 1.08;
+      margin: 0 0 8px;
+      letter-spacing: -0.025em;
+    }
+
+    .state-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .mini-meta {
+      display: grid;
+      gap: 10px;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .meta-item span:first-child {
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .meta-item span:last-child {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin: 22px 0 16px;
+    }
+
+    .toggle-group {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .toggle-btn {
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .toggle-btn.active {
+      background: linear-gradient(180deg, rgba(142,197,255,0.18), rgba(142,197,255,0.08));
+      border-color: rgba(142,197,255,0.25);
+      color: var(--accent-2);
+    }
+
+    .map-section,
+    .section,
+    .kpi {
+      background: linear-gradient(180deg, rgba(17,29,49,0.92), rgba(12,22,38,0.95));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .map-section {
+      margin-bottom: 18px;
+    }
+
+    .map-head,
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .map-title,
+    .section-title {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .map-note,
+    .section-note {
+      color: var(--soft);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    #map {
+      width: 100%;
+      height: 680px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--soft);
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .kpi-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .mover-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .row-card {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .row-main {
+      min-width: 0;
+    }
+
+    .row-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .row-sub {
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .yield {
+      font-weight: 800;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+
+    .chg {
+      min-width: 90px;
+      text-align: right;
+      font-weight: 800;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .pos { color: var(--red); }
+    .neg { color: var(--green); }
+    .flat { color: var(--muted); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.02);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--soft);
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody td {
+      padding: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,0.025);
+    }
+
+    .country {
+      font-weight: 700;
+    }
+
+    .muted {
+      color: var(--soft);
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .share-line {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .share-line a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .error {
+      padding: 18px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #ffd5d5;
+      background: rgba(255,126,126,0.08);
+      border: 1px solid rgba(255,126,126,0.18);
+    }
+
+    @media (max-width: 1120px) {
+      .hero-grid,
+      .kpi-grid,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      #map {
+        height: 560px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .wrap { padding: 16px 14px 40px; }
+      .hero { padding: 22px 18px 18px; border-radius: 22px; }
+      .panel, .section, .kpi, .map-section { padding: 18px; border-radius: 18px; }
+      .row-card { grid-template-columns: 1fr auto; }
+      .chg { grid-column: 2; }
+      #map { height: 460px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">BondStats · Visual Market Monitor</div>
+      <h1>Global Bond Market Map</h1>
+      <p class="subline">
+        A live map of global sovereign bond markets, built to show yield levels and cross-market moves in one view.
+      </p>
+
+      <div class="hero-grid">
+        <div class="panel">
+          <div class="panel-label">Current Map Focus</div>
+          <div id="statePill" class="state-pill">Yield Level View</div>
+          <h2 id="stateTitle" class="state-title">Global Yield Map</h2>
+          <p id="stateText" class="state-text">
+            Tracking sovereign bond markets through the latest available BondStats data.
+          </p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-label">Live Metadata</div>
+          <div class="mini-meta">
+            <div class="meta-item">
+              <span>Last Updated</span>
+              <span id="lastUpdated">—</span>
+            </div>
+            <div class="meta-item">
+              <span>Markets Covered</span>
+              <span id="marketCount">—</span>
+            </div>
+            <div class="meta-item">
+              <span>Top Yield</span>
+              <span id="topYieldMeta">—</span>
+            </div>
+            <div class="meta-item">
+              <span>Largest Move</span>
+              <span id="largestMoveMeta">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <div class="toggle-group">
+        <button class="toggle-btn active" data-mode="yield" onclick="setMode('yield')">Yield Level</button>
+        <button class="toggle-btn" data-mode="change" onclick="setMode('change')">Daily Move</button>
+      </div>
+    </div>
+
+    <section class="map-section">
+      <div class="map-head">
+        <div>
+          <h3 id="mapTitle" class="map-title">Global Yield Level Map</h3>
+          <p id="mapNote" class="map-note">Color scale based on sovereign yield levels across tracked markets</p>
+        </div>
+      </div>
+      <div id="map"></div>
+    </section>
+
+    <section class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Average Yield</div>
+        <div id="avgYield" class="kpi-value">—</div>
+        <div class="kpi-note">Cross-market average of tracked sovereign bond yields.</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Average Move</div>
+        <div id="avgMove" class="kpi-value">—</div>
+        <div class="kpi-note">Mean daily move across markets in basis points.</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Highest Yield</div>
+        <div id="highestYield" class="kpi-value">—</div>
+        <div class="kpi-note">Highest currently tracked sovereign yield in the dataset.</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Largest Move</div>
+        <div id="largestMove" class="kpi-value">—</div>
+        <div class="kpi-note">Biggest daily move across all tracked sovereign markets.</div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">Top Movers</h3>
+            <p class="section-note">Largest daily moves across tracked sovereign markets</p>
+          </div>
+        </div>
+        <div id="topMovers" class="mover-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">Highest Yields</h3>
+            <p class="section-note">Current top sovereign yields in the tracked universe</p>
+          </div>
+        </div>
+        <div id="highestYieldsList" class="mover-list"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">Live Market Table</h3>
+          <p class="section-note">Benchmark sovereign yields with daily moves and ISO map coverage</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>ISO3</th>
+              <th>Yield</th>
+              <th>Daily Move</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="marketTable">
+            <tr><td colspan="5" class="muted">Loading live market data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="footer-note" id="footerNote">
+        The Global Bond Market Map visualizes sovereign yield levels and daily moves using the latest available BondStats data.
+      </div>
+
+      <div class="share-line">
+        Share this view:
+        <a href="#" onclick="copyLink(); return false;">Copy link</a>
+        ·
+        <a href="#" onclick="shareX(); return false;">X</a>
+        ·
+        <a href="#" onclick="shareLinkedIn(); return false;">LinkedIn</a>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const JSON_URL = "https://botapi33.github.io/bondstats-global-yields/global_yields.json";
+    const PAGE_URL = "https://www.bondstats.org/bond-market-tools/global-bond-market-map";
+
+    let currentMode = "yield";
+    let liveData = [];
+
+    const isoMap = {
+      "United States": "USA",
+      "Canada": "CAN",
+      "Mexico": "MEX",
+      "Brazil": "BRA",
+      "Argentina": "ARG",
+      "Chile": "CHL",
+      "Colombia": "COL",
+      "Peru": "PER",
+      "United Kingdom": "GBR",
+      "Germany": "DEU",
+      "France": "FRA",
+      "Italy": "ITA",
+      "Spain": "ESP",
+      "Netherlands": "NLD",
+      "Belgium": "BEL",
+      "Austria": "AUT",
+      "Switzerland": "CHE",
+      "Sweden": "SWE",
+      "Norway": "NOR",
+      "Denmark": "DNK",
+      "Finland": "FIN",
+      "Ireland": "IRL",
+      "Portugal": "PRT",
+      "Greece": "GRC",
+      "Poland": "POL",
+      "Czech Republic": "CZE",
+      "Hungary": "HUN",
+      "Slovakia": "SVK",
+      "Slovenia": "SVN",
+      "Japan": "JPN",
+      "China": "CHN",
+      "India": "IND",
+      "Indonesia": "IDN",
+      "Malaysia": "MYS",
+      "Singapore": "SGP",
+      "South Korea": "KOR",
+      "Australia": "AUS",
+      "New Zealand": "NZL",
+      "South Africa": "ZAF",
+      "Turkey": "TUR",
+      "Saudi Arabia": "SAU",
+      "Israel": "ISR"
+    };
+
+    function formatPct(value, digits = 2) {
+      return Number(value).toFixed(digits) + "%";
+    }
+
+    function formatBp(changeDecimal) {
+      const bp = changeDecimal * 100;
+      return (bp > 0 ? "+" : "") + bp.toFixed(1) + " bp";
+    }
+
+    function mean(arr) {
+      if (!arr.length) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function normalizeData(json) {
+      const source = json?.data || json?.countries || json || {};
+
+      return Object.values(source)
+        .filter(item => item && typeof item === "object")
+        .map(item => ({
+          label: item.label || "Unknown",
+          iso3: isoMap[item.label] || null,
+          value: Number(item.value),
+          change: Number(item.change),
+          date: item.date || "—",
+          frequency: item.frequency || "Latest"
+        }))
+        .filter(item => !Number.isNaN(item.value) && !Number.isNaN(item.change) && item.iso3);
+    }
+
+    function updateHero(json, data) {
+      const highest = [...data].sort((a, b) => b.value - a.value)[0];
+      const mover = [...data].sort((a, b) => Math.abs(b.change) - Math.abs(a.change))[0];
+
+      document.getElementById("lastUpdated").textContent =
+        json?.meta?.lastUpdated ? new Date(json.meta.lastUpdated).toLocaleString() : "Live";
+
+      document.getElementById("marketCount").textContent = data.length;
+      document.getElementById("topYieldMeta").textContent = highest ? `${highest.label} (${highest.value.toFixed(2)}%)` : "—";
+      document.getElementById("largestMoveMeta").textContent = mover ? `${mover.label} (${formatBp(mover.change)})` : "—";
+    }
+
+    function updateKpis(data) {
+      const highest = [...data].sort((a, b) => b.value - a.value)[0];
+      const mover = [...data].sort((a, b) => Math.abs(b.change) - Math.abs(a.change))[0];
+
+      document.getElementById("avgYield").textContent = mean(data.map(d => d.value)).toFixed(2) + "%";
+      document.getElementById("avgMove").textContent = formatBp(mean(data.map(d => d.change)));
+      document.getElementById("highestYield").textContent = highest ? `${highest.value.toFixed(2)}%` : "—";
+      document.getElementById("largestMove").textContent = mover ? formatBp(mover.change) : "—";
+    }
+
+    function renderTopMovers(data) {
+      const top = [...data].sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 6);
+      document.getElementById("topMovers").innerHTML = top.map(item => {
+        const cls = item.change > 0 ? "pos" : item.change < 0 ? "neg" : "flat";
+        return `
+          <div class="row-card">
+            <div class="row-main">
+              <div class="row-title">${item.label}</div>
+              <div class="row-sub">${item.iso3}</div>
+            </div>
+            <div class="yield">${formatPct(item.value)}</div>
+            <div class="chg ${cls}">${formatBp(item.change)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderHighestYields(data) {
+      const top = [...data].sort((a, b) => b.value - a.value).slice(0, 6);
+      document.getElementById("highestYieldsList").innerHTML = top.map(item => {
+        const cls = item.change > 0 ? "pos" : item.change < 0 ? "neg" : "flat";
+        return `
+          <div class="row-card">
+            <div class="row-main">
+              <div class="row-title">${item.label}</div>
+              <div class="row-sub">${item.iso3}</div>
+            </div>
+            <div class="yield">${formatPct(item.value)}</div>
+            <div class="chg ${cls}">${formatBp(item.change)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderTable(data) {
+      const sorted = [...data].sort((a, b) => b.value - a.value);
+      document.getElementById("marketTable").innerHTML = sorted.map(item => {
+        const cls = item.change > 0 ? "pos" : item.change < 0 ? "neg" : "flat";
+        return `
+          <tr>
+            <td class="country">${item.label}</td>
+            <td class="muted">${item.iso3}</td>
+            <td>${formatPct(item.value)}</td>
+            <td class="${cls}">${formatBp(item.change)}</td>
+            <td class="muted">${item.date}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function getMapConfig(mode, data) {
+      if (mode === "change") {
+        return {
+          z: data.map(d => d.change * 100),
+          title: "Global Daily Move Map",
+          note: "Color scale based on daily sovereign yield changes in basis points",
+          statePill: "Daily Move View",
+          stateTitle: "Global Move Map",
+          stateText: "Tracking where sovereign yields are moving higher, lower, or remaining relatively stable.",
+          colorscale: [
+            [0.0, "#5fd39a"],
+            [0.45, "#d7e3f5"],
+            [0.5, "#f1f3f7"],
+            [0.55, "#ffd27a"],
+            [1.0, "#ff8a8a"]
+          ],
+          zmin: -15,
+          zmax: 15,
+          colorbarTitle: "bp",
+          hoverSuffix: " bp"
+        };
+      }
+
+      return {
+        z: data.map(d => d.value),
+        title: "Global Yield Level Map",
+        note: "Color scale based on sovereign yield levels across tracked markets",
+        statePill: "Yield Level View",
+        stateTitle: "Global Yield Map",
+        stateText: "Tracking sovereign bond markets through the latest available BondStats data.",
+        colorscale: [
+          [0.0, "#dce9fb"],
+          [0.25, "#8ec5ff"],
+          [0.5, "#ffd27a"],
+          [0.75, "#ffb071"],
+          [1.0, "#ff8a8a"]
+        ],
+        zmin: Math.min(...data.map(d => d.value)),
+        zmax: Math.max(...data.map(d => d.value)),
+        colorbarTitle: "%",
+        hoverSuffix: "%"
+      };
+    }
+
+    function renderMap() {
+      const data = liveData;
+      const cfg = getMapConfig(currentMode, data);
+
+      document.getElementById("mapTitle").textContent = cfg.title;
+      document.getElementById("mapNote").textContent = cfg.note;
+      document.getElementById("statePill").textContent = cfg.statePill;
+      document.getElementById("stateTitle").textContent = cfg.stateTitle;
+      document.getElementById("stateText").textContent = cfg.stateText;
+
+      const trace = {
+        type: "choropleth",
+        locationmode: "ISO-3",
+        locations: data.map(d => d.iso3),
+        z: cfg.z,
+        text: data.map(d => d.label),
+        customdata: data.map(d => [d.value, d.change * 100, d.date]),
+        colorscale: cfg.colorscale,
+        zmin: cfg.zmin,
+        zmax: cfg.zmax,
+        marker: {
+          line: {
+            color: "rgba(255,255,255,0.25)",
+            width: 0.5
+          }
+        },
+        colorbar: {
+          title: cfg.colorbarTitle,
+          tickfont: { color: "#dfe8f4" },
+          titlefont: { color: "#dfe8f4" },
+          outlinecolor: "rgba(255,255,255,0.15)"
+        },
+        hovertemplate:
+          "<b>%{text}</b><br>" +
+          "Yield: %{customdata[0]:.2f}%<br>" +
+          "Daily Move: %{customdata[1]:+.1f} bp<br>" +
+          "Date: %{customdata[2]}<extra></extra>"
+      };
+
+      const layout = {
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        margin: { t: 0, r: 0, b: 0, l: 0 },
+        geo: {
+          projection: { type: "natural earth" },
+          bgcolor: "rgba(0,0,0,0)",
+          showframe: false,
+          showcoastlines: false,
+          showland: true,
+          landcolor: "rgba(255,255,255,0.06)",
+          showcountries: true,
+          countrycolor: "rgba(255,255,255,0.18)",
+          lakecolor: "rgba(0,0,0,0)",
+          oceancolor: "rgba(0,0,0,0)"
+        },
+        font: {
+          color: "#f4f7fb",
+          family: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+        }
+      };
+
+      Plotly.newPlot("map", [trace], layout, {
+        responsive: true,
+        displayModeBar: false
+      });
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll(".toggle-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
+      if (liveData.length) renderMap();
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(JSON_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const json = await res.json();
+        const data = normalizeData(json);
+
+        if (!data.length) {
+          throw new Error("No usable map records found in live JSON.");
+        }
+
+        liveData = data;
+        updateHero(json, data);
+        updateKpis(data);
+        renderTopMovers(data);
+        renderHighestYields(data);
+        renderTable(data);
+        renderMap();
+
+        document.getElementById("footerNote").textContent =
+          `Live map based on ${data.length} benchmark sovereign markets. Average yield: ${mean(data.map(d => d.value)).toFixed(2)}%. Average move: ${formatBp(mean(data.map(d => d.change))) }.`;
+      } catch (err) {
+        console.error("Global Bond Market Map load error:", err);
+        document.getElementById("map").innerHTML = `<div class="error">Failed to load map data. ${err.message}</div>`;
+        document.getElementById("topMovers").innerHTML = `<div class="error">Failed to load top movers. ${err.message}</div>`;
+        document.getElementById("highestYieldsList").innerHTML = `<div class="error">Failed to load highest yields. ${err.message}</div>`;
+        document.getElementById("marketTable").innerHTML = `<tr><td colspan="5" class="error">Failed to load market table. ${err.message}</td></tr>`;
+      }
+    }
+
+    function copyLink() {
+      navigator.clipboard.writeText(PAGE_URL);
+    }
+
+    function shareX() {
+      window.open(
+        "https://twitter.com/intent/tweet?url=" + encodeURIComponent(PAGE_URL),
+        "_blank"
+      );
+    }
+
+    function shareLinkedIn() {
+      window.open(
+        "https://www.linkedin.com/sharing/share-offsite/?url=" + encodeURIComponent(PAGE_URL),
+        "_blank"
+      );
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
